@@ -1,15 +1,13 @@
 ﻿using System;
 using System.Buffers;
-using System.Buffers.Text;
-using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using System.Text;
 
 namespace SpanCsv
 {
-    public ref partial struct CsvWriter<T> where T : unmanaged
+    public ref partial struct CsvWriter<T> where T : struct
     {
         int _pos;
         private Span<byte> _bytes;
@@ -202,7 +200,67 @@ namespace SpanCsv
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void Dispose()
+        public void Write(decimal value)
+        {
+            if(typeof(T) == typeof(byte))
+            {
+                WriteUtf8(value);
+            }
+            else if(typeof(T) == typeof(char))
+            {
+                WriteUtf16(value);
+            }
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void Write(double value)
+        {
+            if (typeof(T) == typeof(byte))
+            {
+                WriteUtf8(value);
+            }
+            else if (typeof(T) == typeof(char))
+            {
+                WriteUtf16(value);
+            }
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void Write(float value)
+        {
+            if (typeof(T) == typeof(byte))
+            {
+                WriteUtf8(value);
+            }
+            else if (typeof(T) == typeof(char))
+            {
+                WriteUtf16(value);
+            }
+        }
+
+        public void Write(bool value)
+        {
+            if (typeof(T) == typeof(byte))
+            {
+                WriteUtf8(value);
+            }
+            else if (typeof(T) == typeof(char))
+            {
+                WriteUtf16(value);
+            }
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void Write<TOther>(TOther value)
+        {
+            if(value == null)
+            {
+                Write(value.ToString());
+            }
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void Dispose()
         {
             var toReturn = Data;
             this = default; // for safety, to avoid using pooled array if this instance is erroneously appended to again
@@ -212,8 +270,11 @@ namespace SpanCsv
             }
         }
 
+        public CsvWriter(int initialSize) : this(initialSize, ',')
+        {
+        }
 
-        public CsvWriter(int initialSize, char seperator = ',')
+        public CsvWriter(int initialSize, char seperator)
         {
             _seperator = seperator;
             Data = ArrayPool<T>.Shared.Rent(initialSize);
@@ -278,9 +339,22 @@ namespace SpanCsv
             return result;
         }
 
-        public void Reset()
+        public void FlushToStream(Stream stream)
         {
-            _pos = 0;
+            if(typeof(T) == typeof(byte))
+            {
+                stream.Write((byte[])(object)Data, 0, _pos);
+                _pos = 0;
+            }
+        }
+
+        public void FlushToTextWriter(TextWriter textWriter)
+        {
+            if (typeof(T) == typeof(char))
+            {
+                textWriter.Write((char[])(object)Data, 0, _pos);
+                _pos = 0;
+            }
         }
     }
 }

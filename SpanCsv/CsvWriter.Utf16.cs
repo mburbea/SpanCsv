@@ -1,16 +1,14 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using System.Text;
 
 namespace SpanCsv
 {
-    public ref partial struct CsvWriter<T> where T:unmanaged
+    public ref partial struct CsvWriter<T> where T:struct
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void WriteUtf16(long value)
+        public void WriteUtf16(long value)
         {
             ref var pos = ref _pos;
             if (value == long.MinValue)
@@ -20,7 +18,7 @@ namespace SpanCsv
                     Grow(21);
                 }
 
-                Constants.LongMinValueUtf16.AsSpan().TryCopyTo(_chars.Slice(pos));
+                Constants.LongMinValueUtf16.AsSpan().CopyTo(_chars.Slice(pos));
                 pos += Constants.LongMinValueUtf16.Length;
             }
             else if (value < 0)
@@ -38,7 +36,7 @@ namespace SpanCsv
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void WriteUtf16(ulong value)
+        public void WriteUtf16(ulong value)
         {
             ref var pos = ref _pos;
             if (value < 10)
@@ -69,7 +67,7 @@ namespace SpanCsv
             pos += digits;
         }
 
-        private void WriteUtf16(float value)
+        public void WriteUtf16(float value)
         {
             Span<char> span = stackalloc char[Constants.MaxNumberBufferSize];
             value.TryFormat(span, out var written, provider: CultureInfo.InvariantCulture);
@@ -83,7 +81,7 @@ namespace SpanCsv
             pos += written;
         }
 
-        private void WriteUtf16(double value)
+        public void WriteUtf16(double value)
         {
             Span<char> span = stackalloc char[Constants.MaxNumberBufferSize];
             value.TryFormat(span, out var written, provider: CultureInfo.InvariantCulture);
@@ -97,7 +95,7 @@ namespace SpanCsv
             pos += written;
         }
 
-        private void WriteUtf16(decimal value)
+        public void WriteUtf16(decimal value)
         {
             Span<char> span = stackalloc char[Constants.MaxNumberBufferSize];
             value.TryFormat(span, out var written, provider: CultureInfo.InvariantCulture);
@@ -112,7 +110,7 @@ namespace SpanCsv
         }
 
 
-        private void WriteUtf16(string value)
+        public void WriteUtf16(string value)
         {
             ref var pos = ref _pos;
             var valueLength = value.Length;
@@ -148,6 +146,7 @@ namespace SpanCsv
             UnsafeWriteDoubleQuote();
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void WriteUtf16(DateTime value)
         {
             ref var pos = ref _pos;
@@ -163,6 +162,7 @@ namespace SpanCsv
             UnsafeWriteDoubleQuote();
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void WriteUtf16(DateTimeOffset value)
         {
             ref var pos = ref _pos;
@@ -178,8 +178,8 @@ namespace SpanCsv
             UnsafeWriteDoubleQuote();
         }
 
-
-        private void WriteUtf16RawAscii(char c)
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void WriteUtf16RawAscii(char c)
         {
             ref var pos = ref _pos;
             if (pos > _chars.Length - 1)
@@ -188,6 +188,38 @@ namespace SpanCsv
             }
 
             _chars[pos++] = c;
+        }
+
+        public void WriteUtf16(bool value)
+        {
+            ref var pos = ref _pos;
+            if (value)
+            {
+                const int trueLength = 4;
+                if (pos > _chars.Length - trueLength)
+                {
+                    Grow(trueLength);
+                }
+
+                _chars[pos++] = 't';
+                _chars[pos++] = 'r';
+                _chars[pos++] = 'u';
+                _chars[pos++] = 'e';
+            }
+            else
+            {
+                const int falseLength = 5;
+                if (pos > _chars.Length - falseLength)
+                {
+                    Grow(falseLength);
+                }
+
+                _chars[pos++] = 'f';
+                _chars[pos++] = 'a';
+                _chars[pos++] = 'l';
+                _chars[pos++] = 's';
+                _chars[pos++] = 'e';
+            }
         }
     }
 }

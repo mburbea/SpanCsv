@@ -1,13 +1,20 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
-using System.Text;
 
 namespace SpanCsv
 {
     internal static class Utils
     {
+        internal static Dictionary<TKey, TValue> AddRange<TKey, TValue>(this Dictionary<TKey, TValue> collection, IEnumerable<(TKey, TValue)> values)
+        {
+            foreach(var (key,value) in values)
+            {
+                collection.TryAdd(key,value);
+            }
+
+            return collection;
+        }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static int CountDigits(ulong value)

@@ -1,15 +1,16 @@
 ﻿using System;
 using System.Buffers.Text;
+using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
 
 namespace SpanCsv
 {
-    public ref partial struct CsvWriter<T> where T : unmanaged
+    public ref partial struct CsvWriter<T> where T : struct
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void WriteUtf8(long value)
+        public void WriteUtf8(long value)
         {
             ref var pos = ref _pos;
 
@@ -20,7 +21,7 @@ namespace SpanCsv
                     Grow(21);
                 }
 
-                Constants.LongMinValueUtf8.AsSpan().TryCopyTo(_bytes.Slice(pos));
+                Constants.LongMinValueUtf8.AsSpan().CopyTo(_bytes.Slice(pos));
                 pos += Constants.LongMinValueUtf8.Length;
             }
             else if (value < 0)
@@ -38,7 +39,7 @@ namespace SpanCsv
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void WriteUtf8(ulong value)
+        public void WriteUtf8(ulong value)
         {
             ref var pos = ref _pos;
             if (value < 10)
@@ -69,52 +70,55 @@ namespace SpanCsv
             pos += digits;
         }
 
-        private void WriteUtf8(float value)
+        public void WriteUtf8(float value)
         {
-            Span<byte> span = stackalloc byte[Constants.MaxNumberBufferSize];
-            Utf8Formatter.TryFormat(value, span, out var written);
-
+            Span<char> span = stackalloc char[Constants.MaxNumberBufferSize];
+            value.TryFormat(span, out var written, provider: CultureInfo.InvariantCulture);
             ref var pos = ref _pos;
             if (pos > _bytes.Length - written)
             {
                 Grow(written);
             }
 
-            span.Slice(0, written).CopyTo(_bytes.Slice(pos));
-            pos += written;
+            for (int i = 0; i < written; i++)
+            {
+                _bytes[pos++] = (byte)span[i];
+            }
         }
 
-        private void WriteUtf8(double value)
+        public void WriteUtf8(double value)
         {
-            Span<byte> span = stackalloc byte[Constants.MaxNumberBufferSize];
-            Utf8Formatter.TryFormat(value, span, out var written);
-
+            Span<char> span = stackalloc char[Constants.MaxNumberBufferSize];
+            value.TryFormat(span, out var written, provider: CultureInfo.InvariantCulture);
             ref var pos = ref _pos;
             if (pos > _bytes.Length - written)
             {
                 Grow(written);
             }
 
-            span.Slice(0, written).CopyTo(_bytes.Slice(pos));
-            pos += written;
+            for (int i = 0; i < written; i++)
+            {
+                _bytes[pos++] = (byte)span[i];
+            }
         }
 
-        private void WriteUtf8(decimal value)
+        public void WriteUtf8(decimal value)
         {
-            Span<byte> span = stackalloc byte[Constants.MaxNumberBufferSize];
-            Utf8Formatter.TryFormat(value, span, out var written);
-
+            Span<char> span = stackalloc char[Constants.MaxNumberBufferSize];
+            value.TryFormat(span, out var written, provider: CultureInfo.InvariantCulture);
             ref var pos = ref _pos;
             if (pos > _bytes.Length - written)
             {
                 Grow(written);
             }
 
-            span.Slice(0, written).CopyTo(_bytes.Slice(pos));
-            pos += written;
+            for (int i = 0; i < written; i++)
+            {
+                _bytes[pos++] = (byte)span[i];
+            }
         }
 
-        private void WriteUtf8(DateTime value)
+        public void WriteUtf8(DateTime value)
         {
             ref var pos = ref _pos;
             const int dtSize = 35; // Form o + two JsonUtf8Constant.DoubleQuote
@@ -144,7 +148,7 @@ namespace SpanCsv
             UnsafeWriteDoubleQuote();
         }
 
-        private void WriteUtf8(string value)
+        public void WriteUtf8(string value)
         {
             ref var pos = ref _pos;
             var valueLength = value.Length;
@@ -190,8 +194,9 @@ namespace SpanCsv
 
             UnsafeWriteDoubleQuote();
         }
-        
-        private void WriteUtf8RawAscii(char c)
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void WriteUtf8RawAscii(char c)
         {
             ref var pos = ref _pos;
             if (pos > _bytes.Length - 1)
@@ -202,6 +207,36 @@ namespace SpanCsv
             _bytes[pos++] = (byte)c;
         }
 
+        public void WriteUtf8(bool value)
+        {
+            ref var pos = ref _pos;
+            if (value)
+            {
+                const int trueLength = 4;
+                if (pos > _bytes.Length - trueLength)
+                {
+                    Grow(trueLength);
+                }
 
+                _bytes[pos++] = (byte)'t';
+                _bytes[pos++] = (byte)'r';
+                _bytes[pos++] = (byte)'u';
+                _bytes[pos++] = (byte)'e';
+            }
+            else
+            {
+                const int falseLength = 5;
+                if (pos > _bytes.Length - falseLength)
+                {
+                    Grow(falseLength);
+                }
+
+                _bytes[pos++] = (byte)'f';
+                _bytes[pos++] = (byte)'a';
+                _bytes[pos++] = (byte)'l';
+                _bytes[pos++] = (byte)'s';
+                _bytes[pos++] = (byte)'e';
+            }
+        }
     }
 }

@@ -77,7 +77,7 @@ namespace SpanCsvTest
 
             foreach (var (property, i) in properties.Select((x, i) => (x, i)))
             {
-                var f = value + i * 2 + ((value + i) / 100d * (Math.E - 2));
+                int f =(int)( value + i * 2 + ((value + i) / 100d * (Math.E - 2)));
                 if (typeof(IConvertible).IsAssignableFrom(Nullable.GetUnderlyingType(property.PropertyType) ?? property.PropertyType)
                     && property.PropertyType != typeof(DateTime) && property.PropertyType != typeof(DateTime?))
                 {

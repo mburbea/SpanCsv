@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Runtime.CompilerServices;
+using System.Text;
 
 namespace SpanCsv
 {
@@ -25,12 +26,8 @@ namespace SpanCsv
             valueBuilder.Append('\n');
             var chars = new char[valueBuilder.Length];
             valueBuilder.TryCopyTo(chars, out int written);
-            var bytes = new byte[chars.Length];
-
-            for(int i = 0; i < chars.Length; i++)
-            {
-                bytes[i] = (byte)chars[i];
-            }
+            valueBuilder.Dispose();
+            var bytes = Encoding.UTF8.GetBytes(chars);
 
             
 

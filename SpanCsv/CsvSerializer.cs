@@ -2,6 +2,7 @@
 using System.Collections;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Linq;
 using System.Linq.Expressions;
@@ -15,55 +16,48 @@ namespace SpanCsv
         private readonly struct NewLine { }
         private readonly struct Dispose { }
         private readonly struct Flush { }
-        private readonly struct NullableGeneric { }
-        private readonly struct Generic { }
         
-        private static class UTF8
+        private static class Utf8
         {
-            internal static Dictionary<Type, MethodInfo> WriteMethods = typeof(CsvWriter<byte>).GetMethods()
-                .Where(x => x.Name == nameof(CsvWriter<byte>.Write) && x.GetParameters().Length == 1 && x.GetGenericArguments().Length == 0)
+            internal static readonly Dictionary<Type, MethodInfo> WriteMethods = typeof(CsvWriter<byte>).GetMethods()
+                .Where(x => x.Name == nameof(CsvWriter<byte>.WriteUtf8) && x.GetParameters().Length == 1 && x.GetGenericArguments().Length == 0)
                 .ToDictionary(x => x.GetParameters()[0].ParameterType, x => x)
                 .AddRange(new[]{
-                    (typeof(Comma), typeof(CsvWriter<byte>).GetMethod(nameof(CsvWriter<byte>.WriteSeperator))),
-                    (typeof(NewLine), typeof(CsvWriter<byte>).GetMethod(nameof(CsvWriter<byte>.WriteNewLine))),
+                    (typeof(Comma), typeof(CsvWriter<byte>).GetMethod(nameof(CsvWriter<byte>.WriteUtf8Seperator))),
+                    (typeof(NewLine), typeof(CsvWriter<byte>).GetMethod(nameof(CsvWriter<byte>.WriteUtf8NewLine))),
                     (typeof(Dispose), typeof(CsvWriter<byte>).GetMethod(nameof(CsvWriter<byte>.Dispose))),
-                    (typeof(Flush), typeof(CsvWriter<byte>).GetMethod(nameof(CsvWriter<byte>.FlushToStream))),
-                    (typeof(NullableGeneric), typeof(CsvWriter<byte>).GetMethods().First(x=> x.GetGenericArguments().Length == 1 && x.GetParameters()[0].ParameterType != x.GetGenericArguments()[0])),
-                    (typeof(Generic), typeof(CsvWriter<byte>).GetMethods().First(x=> x.GetGenericArguments().Length == 1 && x.GetParameters()[0].ParameterType == x.GetGenericArguments()[0]))
+                    (typeof(Flush), typeof(CsvWriter<byte>).GetMethod(nameof(CsvWriter<byte>.FlushToStream)))
                 });
         }
 
-        private static class UTF16
+        private static class Utf16
         {
-            internal static Dictionary<Type, MethodInfo> WriteMethods = typeof(CsvWriter<char>).GetMethods(BindingFlags.Public | BindingFlags.Instance)
-                .Where(x => x.Name == nameof(CsvWriter<char>.Write) && x.GetParameters().Length == 1)
+            internal static readonly Dictionary<Type, MethodInfo> WriteMethods = typeof(CsvWriter<char>).GetMethods(BindingFlags.Public | BindingFlags.Instance)
+                .Where(x => x.Name == nameof(CsvWriter<char>.WriteUtf16) && x.GetParameters().Length == 1)
                 .ToDictionary(x => x.GetParameters()[0].ParameterType, x => x)
                 .AddRange(new[]{
-                    (typeof(Comma), typeof(CsvWriter<char>).GetMethod(nameof(CsvWriter<char>.WriteSeperator))),
-                    (typeof(NewLine), typeof(CsvWriter<char>).GetMethod(nameof(CsvWriter<char>.WriteNewLine))),
+                    (typeof(Comma), typeof(CsvWriter<char>).GetMethod(nameof(CsvWriter<char>.WriteUtf16Seperator))),
+                    (typeof(NewLine), typeof(CsvWriter<char>).GetMethod(nameof(CsvWriter<char>.WriteUtf16NewLine))),
                     (typeof(Dispose), typeof(CsvWriter<char>).GetMethod(nameof(CsvWriter<char>.Dispose))),
-                    (typeof(Flush), typeof(CsvWriter<char>).GetMethod(nameof(CsvWriter<char>.FlushToTextWriter))),
-                    (typeof(NullableGeneric), typeof(CsvWriter<char>).GetMethods().First(x=> x.GetGenericArguments().Length == 1 && x.GetParameters()[0].ParameterType != x.GetGenericArguments()[0])),
-                    (typeof(Generic), typeof(CsvWriter<char>).GetMethods().First(x=> x.GetGenericArguments().Length == 1 && x.GetParameters()[0].ParameterType == x.GetGenericArguments()[0]))
-
+                    (typeof(Flush), typeof(CsvWriter<char>).GetMethod(nameof(CsvWriter<char>.FlushToTextWriter)))
                 });
         }
 
+        [SuppressMessage("ReSharper", "MemberHidesStaticFromOuterClass")]
         private static class Tokens
         {
             public static readonly Type Comma = typeof(Comma);
             public static readonly Type NewLine = typeof(NewLine);
             public static readonly Type Dispose = typeof(Dispose);
             public static readonly Type Flush = typeof(Flush);
-            public static readonly Type Generic = typeof(Generic);
-            public static readonly Type NullableGeneric = typeof(NullableGeneric);
         }
 
-        private ConcurrentDictionary<Type, (byte[] utf8keys, char[] utf16keys, Action<Stream, IEnumerable, int> utf8writer, Action<TextWriter, IEnumerable, int> utf16writer)> _serializerDictionary =
+        private readonly ConcurrentDictionary<Type, (byte[] utf8keys, char[] utf16keys, Action<Stream, IEnumerable, int> utf8writer, Action<TextWriter, IEnumerable, int> utf16writer)> _serializerDictionary =
             new ConcurrentDictionary<Type, (byte[], char[], Action<Stream, IEnumerable, int>, Action<TextWriter, IEnumerable, int>)>();
 
-        private bool _writeHeaders;
-        private bool _camelCaseHeaders;
+        private readonly bool _writeHeaders;
+        private readonly bool _camelCaseHeaders;
+
         public CsvSerializer(bool camelCaseHeaders = true, bool writeHeaders = true)
         {
             _writeHeaders = writeHeaders;
@@ -77,26 +71,23 @@ namespace SpanCsv
 
         private void Write<T>(T outputStream, IEnumerable data)
         {
-            var t = data.GetType();
-
-            var (utf8keys, utf16keys, utf8writer, utf16writer) = _serializerDictionary.FirstOrDefault(x => x.Key.IsInstanceOfType(data)).Value;
-
+            var (utf8Keys, utf16Keys, utf8Writer, utf16Writer) = _serializerDictionary.FirstOrDefault(x => x.Key.IsInstanceOfType(data)).Value;
 
             if (outputStream is Stream stream)
             {
                 if (_writeHeaders)
                 {
-                    stream.Write(utf8keys);
+                    stream.Write(utf8Keys);
                 }
-                utf8writer(stream, data, utf8keys.Length);
+                utf8Writer(stream, data, utf8Keys.Length);
             }
             else if (outputStream is TextWriter writer)
             {
                 if (_writeHeaders)
                 {
-                    writer.Write(utf16keys);
+                    writer.Write(utf16Keys);
                 }
-                utf16writer(writer, data, utf16keys.Length);
+                utf16Writer(writer, data, utf16Keys.Length);
             }
         }
 
@@ -150,18 +141,22 @@ namespace SpanCsv
             ParameterExpression outputParam = Expression.Variable(typeof(T), "output");
             ParameterExpression dataParam = Expression.Variable(typeof(IEnumerable), "data");
 
-            ParameterExpression writerVar = default;
-            Dictionary<Type, MethodInfo> methods = default;
+            ParameterExpression writerVar;
+            Dictionary<Type, MethodInfo> methods;
 
             if (typeof(T) == typeof(Stream))
             {
                 writerVar = Expression.Variable(typeof(CsvWriter<byte>), "writer");
-                methods = UTF8.WriteMethods;
+                methods = Utf8.WriteMethods;
             }
             else if(typeof(T) == typeof(TextWriter))
             {
                 writerVar = Expression.Variable(typeof(CsvWriter<char>), "writer");
-                methods = UTF16.WriteMethods;
+                methods = Utf16.WriteMethods;
+            }
+            else
+            {
+                throw new InvalidOperationException();
             }
 
             var lambda = Expression.Lambda<Action<T, IEnumerable, int>>(
@@ -196,13 +191,43 @@ namespace SpanCsv
                     {
                         loopBody.Add(Expression.Call(writerVar, method, propAccessor));
                     }
-                    else if (underlyingType != prop.PropertyType)
+                    else if (methods.TryGetValue(underlyingType, out method))
                     {
-                        loopBody.Add(Expression.Call(writerVar, methods[Tokens.NullableGeneric].MakeGenericMethod(underlyingType), propAccessor));
+                        var lvalue = Expression.Parameter(prop.PropertyType);
+                        loopVars.Add(lvalue);
+                        loopBody.Add(Expression.Assign(lvalue, propAccessor));
+                        loopBody.Add(
+                            Expression.IfThen(
+                                Expression.Property(lvalue, "HasValue"),
+                                Expression.Call(writerVar, method, Expression.Call(lvalue, "GetValueOrDefault", Type.EmptyTypes))));
                     }
                     else
                     {
-                        loopBody.Add(Expression.Call(writerVar, methods[Tokens.Generic].MakeGenericMethod(underlyingType), propAccessor));
+                        var lvalue = propAccessor;
+                        Expression condition = null;
+
+                        if (underlyingType != prop.PropertyType)
+                        {
+                            lvalue = Expression.Parameter(prop.PropertyType);
+                            condition = Expression.Property(lvalue, "HasValue");
+                        }
+                        else if (underlyingType.IsClass)
+                        {
+                            lvalue = Expression.Parameter(prop.PropertyType);
+                            condition = Expression.NotEqual(lvalue, Expression.Constant(null));
+                        }
+
+                        Expression expr = Expression.Call(
+                            writerVar, methods[typeof(string)], Expression.Call(lvalue, "ToString", Type.EmptyTypes));
+
+                        if (condition != null)
+                        {
+                            loopVars.Add((ParameterExpression) lvalue);
+                            loopBody.Add(Expression.Assign(lvalue, propAccessor));
+                            expr = Expression.IfThen(condition, expr);
+                        }
+
+                        loopBody.Add(expr);
                     }
                 }
                 loopBody.Add(Expression.Call(writerVar, methods[Tokens.NewLine]));
@@ -213,10 +238,7 @@ namespace SpanCsv
             }
         }
 
-        IEnumerator IEnumerable.GetEnumerator()
-        {
-            throw new NotImplementedException();
-        }
+        IEnumerator IEnumerable.GetEnumerator() => throw new NotImplementedException();
 
         public static Expression ForEach(Expression collection, ParameterExpression loopVar, Expression loopContent)
         {

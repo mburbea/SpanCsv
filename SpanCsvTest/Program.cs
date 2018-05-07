@@ -107,10 +107,10 @@ namespace SpanCsvTest
 
             return t;
         }
-        static void Main(string[] args)
+        static void Main()
         {
             var data = Enumerable.Range(0, 100).Select(i => Populate(i)).ToArray();
-            var q = Enumerable.Range(0, 1).SelectMany(d => data);
+            var q = Enumerable.Range(0, 30_000).SelectMany(d => data);
             Console.WriteLine(q.Count());
             var csvSerializer = new CsvSerializer()
             {
@@ -146,7 +146,8 @@ namespace SpanCsvTest
                     NBool = t.NBool,
 
                     Assigned = t.Assigned,
-                    C =t.C
+                    C =t.C,
+                    NC = t.NC
                 }
             };
 

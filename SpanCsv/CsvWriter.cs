@@ -7,257 +7,14 @@ using System.Runtime.InteropServices;
 
 namespace SpanCsv
 {
-    public ref partial struct CsvWriter<T> where T : struct
+    internal ref partial struct CsvWriter<T> where T : struct
     {
         int _pos;
         private Span<byte> _bytes;
         public T[] Data { get; private set; }
         private Span<char> _chars;
-        private char _seperator;
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Write(sbyte value)
-        {
-            if (typeof(T) == typeof(byte))
-            {
-                WriteUtf8Int64(value);
-            }
-            else if (typeof(T) == typeof(char))
-            {
-                WriteUtf16Decimal(value);
-            }
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Write(short value)
-        {
-            if (typeof(T) == typeof(byte))
-            {
-                WriteUtf8Int64(value);
-            }
-            else if (typeof(T) == typeof(char))
-            {
-                WriteUtf16Decimal(value);
-            }
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Write(int value)
-        {
-            if (typeof(T) == typeof(byte))
-            {
-                WriteUtf8Int64(value);
-            }
-            else if (typeof(T) == typeof(char))
-            {
-                WriteUtf16Decimal(value);
-            }
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Write(long value)
-        {
-            if (typeof(T) == typeof(byte))
-            {
-                WriteUtf8Int64(value);
-            }
-            else if (typeof(T) == typeof(char))
-            {
-                WriteUtf16Decimal(value);
-            }
-        }
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Write(byte value)
-        {
-            if (typeof(T) == typeof(byte))
-            {
-                WriteUtf8Int64(value);
-            }
-            else if (typeof(T) == typeof(char))
-            {
-                WriteUtf16UInt64(value);
-            }
-        }
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Write(ushort value)
-        {
-            if (typeof(T) == typeof(byte))
-            {
-                WriteUtf8Int64(value);
-            }
-            else if (typeof(T) == typeof(char))
-            {
-                WriteUtf16UInt64(value);
-            }
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Write(uint value)
-        {
-            if (typeof(T) == typeof(byte))
-            {
-                WriteUtf8Int64(value);
-            }
-            else if (typeof(T) == typeof(char))
-            {
-                WriteUtf16UInt64(value);
-            }
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Write(ulong value)
-        {
-            if (typeof(T) == typeof(byte))
-            {
-                WriteUtf8UInt64(value);
-            }
-            else if (typeof(T) == typeof(char))
-            {
-                WriteUtf16UInt64(value);
-            }
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Write(DateTime value)
-        {
-            if (typeof(T) == typeof(byte))
-            {
-                WriteUtf8DateTime(value);
-            }
-            else if (typeof(T) == typeof(char))
-            {
-                WriteUtf16DateTime(value);
-            }
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Write(DateTimeOffset value)
-        {
-            if (typeof(T) == typeof(byte))
-            {
-                WriteUtf8DateTimeOffset(value);
-            }
-            else if (typeof(T) == typeof(char))
-            {
-                WriteUtf16DateTimeOffset(value);
-            }
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void WriteNewLine()
-        {
-            if (typeof(T) == typeof(byte))
-            {
-                WriteUtf8RawAscii('\n');
-            }
-            if (typeof(T) == typeof(char))
-            {
-                WriteUtf16RawAscii('\n');
-            }
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void WriteSeperator()
-        {
-            if (typeof(T) == typeof(byte))
-            {
-                WriteUtf8RawAscii(_seperator);
-            }
-            if (typeof(T) == typeof(char))
-            {
-                WriteUtf16RawAscii(_seperator);
-            }
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void UnsafeWriteDoubleQuote()
-        {
-            // DOES NOT Check capacity.
-            if(typeof(T) == typeof(byte))
-            {
-                _bytes[_pos++] = (byte)'"';
-            }
-            if(typeof(T) == typeof(char))
-            {
-                _chars[_pos++] = '"';
-            }
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Write(string value)
-        {
-            if (value != null)
-            {
-                if (typeof(T) == typeof(byte))
-                {
-                    WriteUtf8String(value);
-                }
-                else if (typeof(T) == typeof(char))
-                {
-                    WriteUtf16String(value);
-                }
-            }
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Write(decimal value)
-        {
-            if(typeof(T) == typeof(byte))
-            {
-                WriteUtf8Decimal(value);
-            }
-            else if(typeof(T) == typeof(char))
-            {
-                WriteUtf16Decimal(value);
-            }
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Write(double value)
-        {
-            if (typeof(T) == typeof(byte))
-            {
-                WriteUtf8Double(value);
-            }
-            else if (typeof(T) == typeof(char))
-            {
-                WriteUtf16Double(value);
-            }
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Write(float value)
-        {
-            if (typeof(T) == typeof(byte))
-            {
-                WriteUtf8Single(value);
-            }
-            else if (typeof(T) == typeof(char))
-            {
-                WriteUtf16Single(value);
-            }
-        }
-
-        public void Write(bool value)
-        {
-            if (typeof(T) == typeof(byte))
-            {
-                WriteUtf8Boolean(value);
-            }
-            else if (typeof(T) == typeof(char))
-            {
-                WriteUtf16Boolean(value);
-            }
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Write<TOther>(TOther value)
-        {
-            if(value != null)
-            {
-                Write(value.ToString());
-            }
-        }
+        private readonly char _utf16Seperator;
+        private readonly byte _utf8Seperator;
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Dispose()
@@ -276,7 +33,8 @@ namespace SpanCsv
 
         public CsvWriter(int initialSize, char seperator)
         {
-            _seperator = seperator;
+            _utf16Seperator = seperator;
+            _utf8Seperator = (byte) seperator;
             Data = ArrayPool<T>.Shared.Rent(initialSize);
             if (typeof(T) == typeof(char))
             {
@@ -332,29 +90,17 @@ namespace SpanCsv
             return s;
         }
 
-        public byte[] ToByteArray()
-        {
-            var result = _bytes.Slice(0, _pos).ToArray();
-            Dispose();
-            return result;
-        }
-
         public void FlushToStream(Stream stream)
         {
-            if(typeof(T) == typeof(byte))
-            {
-                stream.Write((byte[])(object)Data, 0, _pos);
-                _pos = 0;
-            }
+            stream.Write((byte[]) (object) Data, 0, _pos);
+            _pos = 0;
         }
 
         public void FlushToTextWriter(TextWriter textWriter)
         {
-            if (typeof(T) == typeof(char))
-            {
-                textWriter.Write((char[])(object)Data, 0, _pos);
-                _pos = 0;
-            }
+
+            textWriter.Write((char[]) (object) Data, 0, _pos);
+            _pos = 0;
         }
     }
 }

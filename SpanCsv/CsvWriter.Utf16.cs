@@ -124,7 +124,7 @@ namespace SpanCsv
         }
 
 
-        public void WriteUtf16(string value)
+        public void WriteUtf16(ReadOnlySpan<char> value)
         {
             ref var pos = ref _pos;
             var valueLength = value.Length;
@@ -136,8 +136,8 @@ namespace SpanCsv
             }
 
             _chars[pos++] = '"';
-            var span = value.AsSpan();
-            ref var start = ref MemoryMarshal.GetReference(span);
+
+            ref var start = ref MemoryMarshal.GetReference(value);
             for (var i = 0; i < valueLength; i++)
             {
                 ref var c = ref Unsafe.Add(ref start, i);
@@ -158,6 +158,18 @@ namespace SpanCsv
             }
 
             _chars[pos++] = '"';
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void WriteUtf16(string value)
+        {
+            WriteUtf16(value.AsSpan());
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void WriteUtf16(char value)
+        {
+            WriteUtf16(MemoryMarshal.CreateReadOnlySpan(ref value, 1));
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

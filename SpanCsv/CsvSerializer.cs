@@ -238,8 +238,6 @@ namespace SpanCsv
             }
         }
 
-        IEnumerator IEnumerable.GetEnumerator() => throw new NotImplementedException();
-
         public static Expression ForEach(Expression collection, ParameterExpression loopVar, Expression loopContent)
         {
             var type = loopVar.Type;
@@ -261,11 +259,13 @@ namespace SpanCsv
             );
 
             return Expression.Block(
-                    new[] { enumeratorVar },
+                    new[] { enumeratorVar  },
                     Expression.TryFinally(
                         loop,
                         Expression.Call(enumeratorVar, typeof(IDisposable).GetMethods()[0])
                     ));
         }
+
+        IEnumerator IEnumerable.GetEnumerator() => throw new NotImplementedException();
     }
 }

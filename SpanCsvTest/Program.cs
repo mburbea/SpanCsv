@@ -19,7 +19,6 @@ namespace SpanCsvTest
         public int Int { get; set; }
         public long Long { get; set; }
 
-
         public ushort UShort { get; set; }
         public uint UInt { get; set; }
         public ulong ULong { get; set; }
@@ -28,6 +27,7 @@ namespace SpanCsvTest
         public double Double { get; set; }
         public decimal Decimal { get; set; }
         public string String { get; set; }
+        public char Char { get;set; }
 
         public DateTime DateTime { get; set; }
         public bool Bool { get; set; }
@@ -45,6 +45,7 @@ namespace SpanCsvTest
         public float? NFloat { get; set; }
         public double? NDouble { get; set; }
         public decimal? NDecimal { get; set; }
+        public char? NChar {get;set;}
 
         public DateTime? NDateTime { get; set; }
         public bool? NBool { get; set; }
@@ -130,6 +131,7 @@ namespace SpanCsvTest
                     SByte = t.SByte,
                     DateTime = t.DateTime,
                     Bool = t.Bool,
+                    Char = t.Char,
 
                     NByte = t.NByte,
                     NDecimal = t.NDecimal,
@@ -144,6 +146,7 @@ namespace SpanCsvTest
                     NSByte = t.NSByte,
                     NDateTime = t.NDateTime,
                     NBool = t.NBool,
+                    NChar = t.NChar,
 
                     Assigned = t.Assigned,
                     C =t.C,

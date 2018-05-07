@@ -5,10 +5,10 @@ using System.Runtime.InteropServices;
 
 namespace SpanCsv
 {
-    public ref partial struct CsvWriter<T> where T:struct
+    public ref partial struct CsvWriter<T> where T : struct
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void WriteUtf16(long value)
+        public void WriteUtf16Int64(long value)
         {
             ref var pos = ref _pos;
             if (value == long.MinValue)
@@ -32,11 +32,11 @@ namespace SpanCsv
                 value = unchecked(-value);
             }
 
-            WriteUtf16((ulong) value);
+            WriteUtf16UInt64((ulong)value);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void WriteUtf16(ulong value)
+        public void WriteUtf16UInt64(ulong value)
         {
             ref var pos = ref _pos;
             if (value < 10)
@@ -46,7 +46,7 @@ namespace SpanCsv
                     Grow(1);
                 }
 
-                _chars[pos++] = (char) ('0' + value);
+                _chars[pos++] = (char)('0' + value);
                 return;
             }
 
@@ -61,60 +61,57 @@ namespace SpanCsv
             {
                 var temp = '0' + value;
                 value /= 10;
-                _chars[pos + i - 1] = (char) (temp - value * 10);
+                _chars[pos + i - 1] = (char)(temp - value * 10);
             }
 
             pos += digits;
         }
 
-        public void WriteUtf16(float value)
+        public void WriteUtf16Single(float value)
         {
-            Span<char> span = stackalloc char[Constants.MaxNumberBufferSize];
-            value.TryFormat(span, out var written, provider: CultureInfo.InvariantCulture);
             ref var pos = ref _pos;
-            if (pos > _chars.Length - written)
+            const int dtSize = Constants.MaxNumberBufferSize; // Form o + two JsonUtf16Constant.DoubleQuote
+            if (pos > _chars.Length - dtSize)
             {
-                Grow(written);
+                Grow(dtSize);
             }
 
-            span.Slice(0, written).CopyTo(_chars.Slice(pos));
+            value.TryFormat(_chars.Slice(pos), out var written, provider: CultureInfo.InvariantCulture);
             pos += written;
         }
 
-        public void WriteUtf16(double value)
+        public void WriteUtf16Double(double value)
         {
-            Span<char> span = stackalloc char[Constants.MaxNumberBufferSize];
-            value.TryFormat(span, out var written, provider: CultureInfo.InvariantCulture);
             ref var pos = ref _pos;
-            if (pos > _chars.Length - written)
+            const int dtSize = Constants.MaxNumberBufferSize; // Form o + two JsonUtf16Constant.DoubleQuote
+            if (pos > _chars.Length - dtSize)
             {
-                Grow(written);
+                Grow(dtSize);
             }
 
-            span.Slice(0, written).CopyTo(_chars.Slice(pos));
+            value.TryFormat(_chars.Slice(pos), out var written, provider: CultureInfo.InvariantCulture);
             pos += written;
         }
 
-        public void WriteUtf16(decimal value)
+        public void WriteUtf16Decimal(decimal value)
         {
-            Span<char> span = stackalloc char[Constants.MaxNumberBufferSize];
-            value.TryFormat(span, out var written, provider: CultureInfo.InvariantCulture);
             ref var pos = ref _pos;
-            if (pos > _chars.Length - written)
+            const int dtSize = Constants.MaxNumberBufferSize; // Form o + two JsonUtf16Constant.DoubleQuote
+            if (pos > _chars.Length - dtSize)
             {
-                Grow(written);
+                Grow(dtSize);
             }
 
-            span.Slice(0, written).CopyTo(_chars.Slice(pos));
+            value.TryFormat(_chars.Slice(pos), out var written, provider: CultureInfo.InvariantCulture);
             pos += written;
         }
 
 
-        public void WriteUtf16(string value)
+        public void WriteUtf16String(string value)
         {
             ref var pos = ref _pos;
             var valueLength = value.Length;
-            var sLength = valueLength + 4; // 2 double quotes + one special char
+            var sLength = valueLength + 2; // 2 double quotes + one special char
 
             if (pos > _chars.Length - sLength)
             {
@@ -147,7 +144,7 @@ namespace SpanCsv
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void WriteUtf16(DateTime value)
+        public void WriteUtf16DateTime(DateTime value)
         {
             ref var pos = ref _pos;
             const int dtSize = 35; // Form o + two JsonUtf16Constant.DoubleQuote
@@ -163,7 +160,7 @@ namespace SpanCsv
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void WriteUtf16(DateTimeOffset value)
+        public void WriteUtf16DateTimeOffset(DateTimeOffset value)
         {
             ref var pos = ref _pos;
             const int dtSize = 35; // Form o + two JsonUtf16Constant.DoubleQuote
@@ -190,7 +187,7 @@ namespace SpanCsv
             _chars[pos++] = c;
         }
 
-        public void WriteUtf16(bool value)
+        public void WriteUtf16Boolean(bool value)
         {
             ref var pos = ref _pos;
             if (value)

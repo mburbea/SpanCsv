@@ -59,8 +59,16 @@ namespace SpanCsv
             public static readonly Type NullableGeneric = typeof(NullableGeneric);
         }
 
-        private ConcurrentDictionary<Type, (string[] keys, Action<Stream, IEnumerable, int> utf8write, Action<TextWriter, IEnumerable, int> utf16writer)> _serializerDictionary =
-            new ConcurrentDictionary<Type, (string[] keys, Action<Stream, IEnumerable, int> utf8write, Action<TextWriter, IEnumerable, int> utf16writer)>();
+        private ConcurrentDictionary<Type, (byte[] utf8keys, char[] utf16keys, Action<Stream, IEnumerable, int> utf8writer, Action<TextWriter, IEnumerable, int> utf16writer)> _serializerDictionary =
+            new ConcurrentDictionary<Type, (byte[], char[], Action<Stream, IEnumerable, int>, Action<TextWriter, IEnumerable, int>)>();
+
+        private bool _writeHeaders;
+        private bool _camelCaseHeaders;
+        public CsvSerializer(bool camelCaseHeaders = true, bool writeHeaders = true)
+        {
+            _writeHeaders = writeHeaders;
+            _camelCaseHeaders = camelCaseHeaders;
+        }
 
         public void Add<TFrom, TTo>(Expression<Func<TFrom, TTo>> wireConverter)
         {
@@ -71,19 +79,24 @@ namespace SpanCsv
         {
             var t = data.GetType();
 
-            var f = _serializerDictionary.FirstOrDefault(x => x.Key.IsInstanceOfType(data)).Value;
+            var (utf8keys, utf16keys, utf8writer, utf16writer) = _serializerDictionary.FirstOrDefault(x => x.Key.IsInstanceOfType(data)).Value;
+
 
             if (outputStream is Stream stream)
             {
-                f.utf8write(stream, data, 1000);
+                if (_writeHeaders)
+                {
+                    stream.Write(utf8keys);
+                }
+                utf8writer(stream, data, utf8keys.Length);
             }
-            if (outputStream is TextWriter writer)
+            else if (outputStream is TextWriter writer)
             {
-                f.utf16writer(writer, data, 1000);
-            }
-            else
-            {
-                
+                if (_writeHeaders)
+                {
+                    writer.Write(utf16keys);
+                }
+                utf16writer(writer, data, utf16keys.Length);
             }
         }
 
@@ -91,6 +104,7 @@ namespace SpanCsv
         {
             if (stream is null) throw new ArgumentNullException(nameof(stream));
             if (data is null) throw new ArgumentNullException(nameof(data));
+            
             Write<Stream>(stream, data);
         }
 
@@ -101,7 +115,7 @@ namespace SpanCsv
             Write<TextWriter>(writer, data);
         }
 
-        private (string[] keys, Action<Stream, IEnumerable, int> utf8write, Action<TextWriter, IEnumerable, int> utf16writer) CreateWriter(LambdaExpression wireConverter)
+        private (byte[], char[], Action<Stream, IEnumerable, int>, Action<TextWriter, IEnumerable, int>) CreateWriter(LambdaExpression wireConverter)
         {
             if (!(wireConverter.Body is MemberInitExpression node))
             {
@@ -125,8 +139,9 @@ namespace SpanCsv
                                  select binding.Expression).ToArray();
 
             var keys = Array.ConvertAll(properties, prop => prop.Name);
+            var (utf16, utf8) = Utils.BuildHeaderArrays(keys, ',', _camelCaseHeaders);
             
-            return (keys, CreateWriter<Stream>(thisParam, properties, propAccessors), CreateWriter<TextWriter>(thisParam, properties, propAccessors));
+            return (utf8, utf16, CreateWriter<Stream>(thisParam, properties, propAccessors), CreateWriter<TextWriter>(thisParam, properties, propAccessors));
         }
 
         private static Action<T, IEnumerable, int> CreateWriter<T>(ParameterExpression foreachVar, PropertyInfo[] properties, Expression[] propAccessors)
@@ -205,23 +220,15 @@ namespace SpanCsv
 
         public static Expression ForEach(Expression collection, ParameterExpression loopVar, Expression loopContent)
         {
-            var elementType = loopVar.Type;
-            var enumerableType = typeof(IEnumerable<>).MakeGenericType(elementType);
-            var enumeratorType = typeof(IEnumerator<>).MakeGenericType(elementType);
-
-            var enumeratorVar = Expression.Variable(enumeratorType, "enumerator");
-            var getEnumeratorCall = Expression.Call(collection, enumerableType.GetMethod("GetEnumerator"));
-            var enumeratorAssign = Expression.Assign(enumeratorVar, getEnumeratorCall);
-
-            // The MoveNext method's actually on IEnumerator, not IEnumerator<T>
-            var moveNextCall = Expression.Call(enumeratorVar, typeof(IEnumerator).GetMethod("MoveNext"));
+            var type = loopVar.Type;
+            var enumeratorVar = Expression.Variable(typeof(IEnumerator<>).MakeGenericType(type), "enumerator");
 
             var breakLabel = Expression.Label("LoopBreak");
             Expression loop = Expression.Block(
-                enumeratorAssign,
+                Expression.Assign(enumeratorVar, Expression.Call(collection, typeof(IEnumerable<>).MakeGenericType(type).GetMethod("GetEnumerator"))),
                 Expression.Loop(
                     Expression.IfThenElse(
-                        moveNextCall,
+                        Expression.Call(enumeratorVar, typeof(IEnumerator).GetMethod("MoveNext")),
                         Expression.Block(new[] { loopVar },
                             Expression.Assign(loopVar, Expression.Property(enumeratorVar, "Current")),
                             loopContent
@@ -231,14 +238,12 @@ namespace SpanCsv
                 breakLabel)
             );
 
-            loop = Expression.Block(
+            return Expression.Block(
                     new[] { enumeratorVar },
                     Expression.TryFinally(
                         loop,
                         Expression.Call(enumeratorVar, typeof(IDisposable).GetMethods()[0])
                     ));
-
-            return loop;
         }
     }
 }

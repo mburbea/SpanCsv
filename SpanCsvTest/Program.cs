@@ -50,6 +50,8 @@ namespace SpanCsvTest
         public bool? NBool { get; set; }
         public B Unassigned { get; set; }
         public B Assigned { get; set; }
+        public C C { get; set; }
+        public C? NC { get; set; }
     }
 
     class B
@@ -59,21 +61,29 @@ namespace SpanCsvTest
         public override string ToString() => _b.ToString();
     }
 
+    struct C
+    {
+        string _s;
+        public C(string s) => _s = s;
+        public override string ToString() => _s.ToString();
+    }
+
     class Program
     {
         static Test Populate(int value)
         {
             var properties = typeof(Test).GetProperties();
             var t = new Test();
-            
-            foreach (var (property,i) in properties.Select((x,i)=>(x,i)))
+
+            foreach (var (property, i) in properties.Select((x, i) => (x, i)))
             {
-                var f = value +i * 2  + ((value + i) / 100d * (Math.E - 2));
-                if (typeof(IConvertible).IsAssignableFrom(property.PropertyType) && property.PropertyType != typeof(DateTime) && property.PropertyType != typeof(DateTime?))
+                var f = value + i * 2 + ((value + i) / 100d * (Math.E - 2));
+                if (typeof(IConvertible).IsAssignableFrom(Nullable.GetUnderlyingType(property.PropertyType) ?? property.PropertyType)
+                    && property.PropertyType != typeof(DateTime) && property.PropertyType != typeof(DateTime?))
                 {
                     property.SetValue(t, Convert.ChangeType(f, Nullable.GetUnderlyingType(property.PropertyType) ?? property.PropertyType));
                 }
-                else if(property.Name == nameof(Test.DateTime))
+                else if (property.Name == nameof(Test.DateTime))
                 {
                     t.DateTime = new DateTime(2018, 1, 1, 0, 0, 0, DateTimeKind.Utc).AddDays(f);
                 }
@@ -81,11 +91,18 @@ namespace SpanCsvTest
                 {
                     t.NDateTime = new DateTime(2018, 1, 1, 0, 0, 0, DateTimeKind.Utc).AddDays(f);
                 }
-                else if(property.Name == nameof(Test.Assigned))
+                else if (property.Name == nameof(Test.Assigned))
                 {
                     t.Assigned = new B((int)f);
                 }
-
+                else if (property.Name == nameof(Test.C))
+                {
+                    t.C = new C("here is a long string that should test the ascii fast path stays fast, after all that's what matters?");
+                }
+                else if (property.Name == nameof(Test.NC))
+                {
+                    t.NC = new C("Some gross poop here?");
+                }
             }
 
             return t;
@@ -93,7 +110,7 @@ namespace SpanCsvTest
         static void Main(string[] args)
         {
             var data = Enumerable.Range(0, 100).Select(i => Populate(i)).ToArray();
-            var q = Enumerable.Range(0, 30_000).SelectMany(d => data);
+            var q = Enumerable.Range(0, 1).SelectMany(d => data);
             Console.WriteLine(q.Count());
             var csvSerializer = new CsvSerializer()
             {
@@ -128,28 +145,32 @@ namespace SpanCsvTest
                     NDateTime = t.NDateTime,
                     NBool = t.NBool,
 
-                    Assigned = t.Assigned
+                    Assigned = t.Assigned,
+                    C =t.C
                 }
             };
 
             Stopwatch sw = Stopwatch.StartNew();
-            using (var stream = new MemoryStream())
+            using (var stream = new FileStream("out1.csv",FileMode.Create))
             {
-                using (var writer = new StreamWriter(stream))
+              //  using (var gzip = new GZipStream(stream, CompressionLevel.Fastest, true))
                 {
                     csvSerializer.Write(stream, q);
                 }
-                
+
+               // Console.WriteLine(stream.Position);
             }
             Console.WriteLine(sw.Elapsed);
             sw = Stopwatch.StartNew();
-            using (var stream = new MemoryStream())
+            using (var stream = new FileStream("out2.csv", FileMode.Create))
             {
+               // using (var gzip = new GZipStream(stream, CompressionLevel.Fastest, true))
                 using (var writer = new StreamWriter(stream))
                 {
                     csvSerializer.Write(writer, q);
                 }
 
+                //Console.WriteLine(stream.Position);
             }
             Console.WriteLine(sw.Elapsed);
 

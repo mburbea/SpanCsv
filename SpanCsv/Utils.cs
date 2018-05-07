@@ -1,11 +1,41 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Buffers;
+using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq;
 using System.Runtime.CompilerServices;
 
 namespace SpanCsv
 {
     internal static class Utils
     {
+        internal static (char[],byte[]) BuildHeaderArrays(string[] headers, char delimiter, bool camelCase)
+        {
+            var valueBuilder = new ValueStringBuilder();
+            for(int i = 0; i < headers.Length;i++)
+            {
+                if(i > 0)
+                {
+                    valueBuilder.Append(delimiter);
+                }
+
+                valueBuilder.Append(camelCase ? char.ToLowerInvariant(headers[i][0]): headers[i][0]);
+                valueBuilder.Append(headers[i].AsSpan(1));
+            }
+            valueBuilder.Append('\n');
+            var chars = new char[valueBuilder.Length];
+            valueBuilder.TryCopyTo(chars, out int written);
+            var bytes = new byte[chars.Length];
+
+            for(int i = 0; i < chars.Length; i++)
+            {
+                bytes[i] = (byte)chars[i];
+            }
+
+            
+
+            return (chars, bytes);
+        }
         internal static Dictionary<TKey, TValue> AddRange<TKey, TValue>(this Dictionary<TKey, TValue> collection, IEnumerable<(TKey, TValue)> values)
         {
             foreach(var (key,value) in values)

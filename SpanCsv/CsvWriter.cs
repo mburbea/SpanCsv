@@ -20,11 +20,11 @@ namespace SpanCsv
         {
             if (typeof(T) == typeof(byte))
             {
-                WriteUtf8(value);
+                WriteUtf8Int64(value);
             }
             else if (typeof(T) == typeof(char))
             {
-                WriteUtf16(value);
+                WriteUtf16Decimal(value);
             }
         }
 
@@ -33,11 +33,11 @@ namespace SpanCsv
         {
             if (typeof(T) == typeof(byte))
             {
-                WriteUtf8(value);
+                WriteUtf8Int64(value);
             }
             else if (typeof(T) == typeof(char))
             {
-                WriteUtf16(value);
+                WriteUtf16Decimal(value);
             }
         }
 
@@ -46,11 +46,11 @@ namespace SpanCsv
         {
             if (typeof(T) == typeof(byte))
             {
-                WriteUtf8(value);
+                WriteUtf8Int64(value);
             }
             else if (typeof(T) == typeof(char))
             {
-                WriteUtf16(value);
+                WriteUtf16Decimal(value);
             }
         }
 
@@ -59,11 +59,11 @@ namespace SpanCsv
         {
             if (typeof(T) == typeof(byte))
             {
-                WriteUtf8(value);
+                WriteUtf8Int64(value);
             }
             else if (typeof(T) == typeof(char))
             {
-                WriteUtf16(value);
+                WriteUtf16Decimal(value);
             }
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -71,11 +71,11 @@ namespace SpanCsv
         {
             if (typeof(T) == typeof(byte))
             {
-                WriteUtf8(value);
+                WriteUtf8Int64(value);
             }
             else if (typeof(T) == typeof(char))
             {
-                WriteUtf16(value);
+                WriteUtf16UInt64(value);
             }
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -83,11 +83,11 @@ namespace SpanCsv
         {
             if (typeof(T) == typeof(byte))
             {
-                WriteUtf8(value);
+                WriteUtf8Int64(value);
             }
             else if (typeof(T) == typeof(char))
             {
-                WriteUtf16(value);
+                WriteUtf16UInt64(value);
             }
         }
 
@@ -96,11 +96,11 @@ namespace SpanCsv
         {
             if (typeof(T) == typeof(byte))
             {
-                WriteUtf8(value);
+                WriteUtf8Int64(value);
             }
             else if (typeof(T) == typeof(char))
             {
-                WriteUtf16(value);
+                WriteUtf16UInt64(value);
             }
         }
 
@@ -109,11 +109,11 @@ namespace SpanCsv
         {
             if (typeof(T) == typeof(byte))
             {
-                WriteUtf8(value);
+                WriteUtf8UInt64(value);
             }
             else if (typeof(T) == typeof(char))
             {
-                WriteUtf16(value);
+                WriteUtf16UInt64(value);
             }
         }
 
@@ -122,11 +122,11 @@ namespace SpanCsv
         {
             if (typeof(T) == typeof(byte))
             {
-                WriteUtf8(value);
+                WriteUtf8DateTime(value);
             }
             else if (typeof(T) == typeof(char))
             {
-                WriteUtf16(value);
+                WriteUtf16DateTime(value);
             }
         }
 
@@ -135,11 +135,11 @@ namespace SpanCsv
         {
             if (typeof(T) == typeof(byte))
             {
-                WriteUtf8(value);
+                WriteUtf8DateTimeOffset(value);
             }
             else if (typeof(T) == typeof(char))
             {
-                WriteUtf16(value);
+                WriteUtf16DateTimeOffset(value);
             }
         }
 
@@ -190,11 +190,11 @@ namespace SpanCsv
             {
                 if (typeof(T) == typeof(byte))
                 {
-                    WriteUtf8(value);
+                    WriteUtf8String(value);
                 }
                 else if (typeof(T) == typeof(char))
                 {
-                    WriteUtf16(value);
+                    WriteUtf16String(value);
                 }
             }
         }
@@ -204,11 +204,11 @@ namespace SpanCsv
         {
             if(typeof(T) == typeof(byte))
             {
-                WriteUtf8(value);
+                WriteUtf8Decimal(value);
             }
             else if(typeof(T) == typeof(char))
             {
-                WriteUtf16(value);
+                WriteUtf16Decimal(value);
             }
         }
 
@@ -217,11 +217,11 @@ namespace SpanCsv
         {
             if (typeof(T) == typeof(byte))
             {
-                WriteUtf8(value);
+                WriteUtf8Double(value);
             }
             else if (typeof(T) == typeof(char))
             {
-                WriteUtf16(value);
+                WriteUtf16Double(value);
             }
         }
 
@@ -230,11 +230,11 @@ namespace SpanCsv
         {
             if (typeof(T) == typeof(byte))
             {
-                WriteUtf8(value);
+                WriteUtf8Single(value);
             }
             else if (typeof(T) == typeof(char))
             {
-                WriteUtf16(value);
+                WriteUtf16Single(value);
             }
         }
 
@@ -242,18 +242,18 @@ namespace SpanCsv
         {
             if (typeof(T) == typeof(byte))
             {
-                WriteUtf8(value);
+                WriteUtf8Boolean(value);
             }
             else if (typeof(T) == typeof(char))
             {
-                WriteUtf16(value);
+                WriteUtf16Boolean(value);
             }
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Write<TOther>(TOther value)
         {
-            if(value == null)
+            if(value != null)
             {
                 Write(value.ToString());
             }

@@ -7,6 +7,8 @@ using System.IO;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
+using System.Reflection.Emit;
+using nint = System.Nullable<int>;
 
 namespace SpanCsv
 {
@@ -77,16 +79,18 @@ namespace SpanCsv
             {
                 if (_writeHeaders)
                 {
-                    stream.Write(utf8Keys);
+                    stream.Write(utf8Keys, 0, utf8Keys.Length);
                 }
+
                 utf8Writer(stream, data, utf8Keys.Length);
             }
             else if (outputStream is TextWriter writer)
             {
                 if (_writeHeaders)
                 {
-                    writer.Write(utf16Keys);
+                    writer.Write(utf16Keys, 0, utf16Keys.Length);
                 }
+
                 utf16Writer(writer, data, utf16Keys.Length);
             }
         }
@@ -138,8 +142,8 @@ namespace SpanCsv
         private static Action<T, IEnumerable, int> CreateWriter<T>(ParameterExpression foreachVar, PropertyInfo[] properties, Expression[] propAccessors)
         {
             var guessParam = Expression.Variable(typeof(int), "guess");
-            ParameterExpression outputParam = Expression.Variable(typeof(T), "output");
-            ParameterExpression dataParam = Expression.Variable(typeof(IEnumerable), "data");
+            var outputParam = Expression.Variable(typeof(T), "output");
+            var dataParam = Expression.Variable(typeof(IEnumerable), "data");
 
             ParameterExpression writerVar;
             Dictionary<Type, MethodInfo> methods;
@@ -185,7 +189,6 @@ namespace SpanCsv
 
                     if (propAccessor is ConstantExpression constant && constant.Value == null)
                     {
-                        // Do nothing we don't write nulls!
                     }
                     else if (methods.TryGetValue(prop.PropertyType, out var method))
                     {
@@ -230,10 +233,9 @@ namespace SpanCsv
                         loopBody.Add(expr);
                     }
                 }
+
                 loopBody.Add(Expression.Call(writerVar, methods[Tokens.NewLine]));
                 loopBody.Add(Expression.Call(writerVar, methods[Tokens.Flush], outputParam));
-
-
                 return Expression.Block(loopVars, loopBody);
             }
         }
@@ -243,7 +245,7 @@ namespace SpanCsv
             var type = loopVar.Type;
             var enumeratorVar = Expression.Variable(typeof(IEnumerator<>).MakeGenericType(type), "enumerator");
 
-            var breakLabel = Expression.Label("LoopBreak");
+            var breakLabel = Expression.Label();
             Expression loop = Expression.Block(
                 Expression.Assign(enumeratorVar, Expression.Call(collection, typeof(IEnumerable<>).MakeGenericType(type).GetMethod("GetEnumerator"))),
                 Expression.Loop(

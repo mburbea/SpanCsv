@@ -16,6 +16,7 @@
   <ItemGroup>
     <PackageReference Include="ErrorProne.NET" Version="0.1.5898.41180" />
     <PackageReference Include="ErrorProne.NET.Structs" Version="0.1.0" />
+    <PackageReference Include="System.Memory" Version="4.5.0-rc1" />
   </ItemGroup>
 
   <ItemGroup>

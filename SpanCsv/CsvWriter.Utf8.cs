@@ -118,16 +118,24 @@ namespace SpanCsv
 
         public void WriteUtf8(decimal value)
         {
-            Span<byte> span = stackalloc byte[Constants.DecimalBufferSize];
-            Utf8Formatter.TryFormat(value, span, out var written);
+            if (value == 0)
+            {
+                WriteUtf8RawAscii((byte) '0');
+                return;
+            }
+
+            Span<char> span = stackalloc char[Constants.DecimalBufferSize];
+            value.TryFormat(span, out var written, provider: CultureInfo.InvariantCulture);
             ref var pos = ref _pos;
             if (pos > _bytes.Length - written)
             {
                 Grow(written);
             }
 
-            span.Slice(0, written).CopyTo(_bytes.Slice(pos));
-            pos += written;
+            for (int i = 0; i < written; i++)
+            {
+                _bytes[pos++] = (byte)span[i];
+            }
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -141,7 +149,7 @@ namespace SpanCsv
             }
 
             _bytes[_pos++] = (byte)'"';
-            Utf8Formatter.TryFormat(value, _bytes.Slice(pos), out var bytesWritten, 'O');
+            DateTimeFormatter.TryFormat(value, _bytes.Slice(pos), out var bytesWritten);
             pos += bytesWritten;
             _bytes[_pos++] = (byte)'"';
         }
@@ -157,7 +165,7 @@ namespace SpanCsv
             }
 
             _bytes[_pos++] = (byte)'"';
-            Utf8Formatter.TryFormat(value, _bytes.Slice(pos), out var bytesWritten, 'O');
+            DateTimeFormatter.TryFormat(value, _bytes.Slice(pos), out var bytesWritten);
             pos += bytesWritten;
             _bytes[_pos++] = (byte)'"';
         }
@@ -191,7 +199,8 @@ namespace SpanCsv
                 }
                 else if (c > 0x7F) // UTF8 characters, we need to escape them
                 {
-                    var temp = MemoryMarshal.CreateReadOnlySpan(ref c, 1);
+                    ReadOnlySpan<char> temp = MemoryMarshal.CreateReadOnlySpan(ref c, 1);
+
                     var remaining = 4 + valueLength - i; // make sure that all characters, an extra 5 for a full escape and 4 for the utf8 bytes, still fit
                     if (pos > _bytes.Length - remaining)
                     {
@@ -212,7 +221,10 @@ namespace SpanCsv
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void WriteUtf8(string value)
         {
-            WriteUtf8(value.AsSpan());
+            if (value != null)
+            {
+                WriteUtf8(value.AsSpan());
+            }
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

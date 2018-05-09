@@ -111,6 +111,11 @@ namespace SpanCsv
 
         public void WriteUtf16(decimal value)
         {
+            if (value == 0)
+            {
+                WriteUtf16RawAscii('0');
+                return;
+            }
             Span<char> span = stackalloc char[Constants.DecimalBufferSize];
             value.TryFormat(span, out var written, provider: CultureInfo.InvariantCulture);
             ref var pos = ref _pos;
@@ -163,7 +168,10 @@ namespace SpanCsv
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void WriteUtf16(string value)
         {
-            WriteUtf16(value.AsSpan());
+            if (value != null)
+            {
+                WriteUtf16(value.AsSpan());
+            }
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -183,7 +191,7 @@ namespace SpanCsv
             }
 
             _chars[pos++] = '"';
-            value.TryFormat(_chars.Slice(pos), out var written, "O", CultureInfo.InvariantCulture);
+            DateTimeFormatter.TryFormat(value, _chars.Slice(pos), out var written);
             pos += written;
             _chars[pos++] = '"';
         }
@@ -199,7 +207,7 @@ namespace SpanCsv
             }
 
             _chars[pos++] = '"';
-            value.TryFormat(_chars.Slice(pos), out var written, "O", CultureInfo.InvariantCulture);
+            DateTimeFormatter.TryFormat(value, _chars.Slice(pos), out var written);
             pos += written;
             _chars[pos++] = '"';
         }

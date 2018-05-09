@@ -2,13 +2,11 @@
 using System;
 using System.Diagnostics;
 using System.IO;
-using System.IO.Compression;
 using System.Linq;
-using System.Text;
 
 namespace SpanCsvTest
 {
-    class Test
+    internal class Test
     {
         public Byte Byte { get; set; }
         public SByte SByte { get; set; }
@@ -55,18 +53,18 @@ namespace SpanCsvTest
         public C? NC { get; set; }
     }
 
-    class B
+    internal sealed class B
     {
         public B(int b) => _b = b;
-        int _b;
+        readonly int _b;
         public override string ToString() => _b.ToString();
     }
 
-    struct C
+    internal readonly struct C
     {
-        string _s;
+        readonly string _s;
         public C(string s) => _s = s;
-        public override string ToString() => _s.ToString();
+        public override string ToString() => _s;
     }
 
     class Program
@@ -78,19 +76,21 @@ namespace SpanCsvTest
 
             foreach (var (property, i) in properties.Select((x, i) => (x, i)))
             {
-                int f =(int)( value + i * 2 + ((value + i) / 100d * (Math.E - 2)));
+                var f =( value + i * 2 + ((value + i) / 100d * (Math.E - 2)));
                 if (typeof(IConvertible).IsAssignableFrom(Nullable.GetUnderlyingType(property.PropertyType) ?? property.PropertyType)
-                    && property.PropertyType != typeof(DateTime) && property.PropertyType != typeof(DateTime?))
+                    && property.PropertyType != typeof(DateTime) && property.PropertyType != typeof(DateTime?)
+                    && property.PropertyType != typeof(char) && property.PropertyType != typeof(char?)
+                    )
                 {
                     property.SetValue(t, Convert.ChangeType(f, Nullable.GetUnderlyingType(property.PropertyType) ?? property.PropertyType));
                 }
-                else if (property.Name == nameof(Test.DateTime))
+                else if (property.Name == nameof(Test.Char) || property.Name == nameof(Test.NChar))
                 {
-                    t.DateTime = new DateTime(2018, 1, 1, 0, 0, 0, DateTimeKind.Utc).AddDays(f);
+                    property.SetValue(t, Convert.ChangeType((int)f, Nullable.GetUnderlyingType(property.PropertyType) ?? property.PropertyType));
                 }
-                else if (property.Name == nameof(Test.NDateTime))
+                else if (property.Name == nameof(Test.DateTime) || property.Name == nameof(Test.NDateTime))
                 {
-                    t.NDateTime = new DateTime(2018, 1, 1, 0, 0, 0, DateTimeKind.Utc).AddDays(f);
+                    property.SetValue(t, new DateTime(2018, 1, 1, 0, 0, 0, DateTimeKind.Utc).AddDays(f));
                 }
                 else if (property.Name == nameof(Test.Assigned))
                 {
@@ -110,7 +110,7 @@ namespace SpanCsvTest
         }
         static void Main()
         {
-            var data = Enumerable.Range(0, 100).Select(i => Populate(i)).ToArray();
+            var data = Enumerable.Range(0, 100).Select(Populate).ToArray();
             var q = Enumerable.Range(0, 30_000).SelectMany(d => data);
             Console.WriteLine(q.Count());
             var csvSerializer = new CsvSerializer()

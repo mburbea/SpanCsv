@@ -37,7 +37,7 @@ namespace SpanCsv
         {
             foreach(var (key,value) in values)
             {
-                collection.TryAdd(key,value);
+                collection.Add(key,value);
             }
 
             return collection;

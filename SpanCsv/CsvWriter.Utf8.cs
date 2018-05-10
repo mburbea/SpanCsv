@@ -54,6 +54,7 @@ namespace SpanCsv
                 }
 
                 _bytes[pos++] = (byte)('0' + value);
+                WriteUtf8EndingErrata();
                 return;
             }
 
@@ -72,6 +73,7 @@ namespace SpanCsv
             }
 
             pos += digits;
+            WriteUtf8EndingErrata();
         }
 
         public void WriteUtf8(float value)
@@ -88,6 +90,7 @@ namespace SpanCsv
             {
                 _bytes[pos++] = (byte)span[i];
             }
+            WriteUtf8EndingErrata();
         }
 
         public void WriteUtf8(double value)
@@ -104,13 +107,14 @@ namespace SpanCsv
             {
                 _bytes[pos++] = (byte)span[i];
             }
+            WriteUtf8EndingErrata();
         }
 
         public void WriteUtf8(decimal value)
         {
             if (value == 0)
             {
-                WriteUtf8Verbatim((byte) '0');
+                WriteUtf8(0ul);
                 return;
             }
 
@@ -126,13 +130,14 @@ namespace SpanCsv
             {
                 _bytes[pos++] = (byte)span[i];
             }
+            WriteUtf8EndingErrata();
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void WriteUtf8(DateTime value)
         {
             ref var pos = ref _pos;
-            const int dtSize = 35; // Form o + two JsonUtf8Constant.DoubleQuote
+            const int dtSize = 36; // Form o + two JsonUtf8Constant.DoubleQuote
             if (pos > _bytes.Length - dtSize)
             {
                 Grow(dtSize);
@@ -142,13 +147,14 @@ namespace SpanCsv
             DateTimeFormatter.TryFormat(value, _bytes.Slice(pos), out var bytesWritten);
             pos += bytesWritten;
             _bytes[_pos++] = (byte)'"';
+            WriteUtf8EndingErrata();
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void WriteUtf8(DateTimeOffset value)
         {
             ref var pos = ref _pos;
-            const int dtSize = 35; // Form o + two JsonUtf8Constant.DoubleQuote
+            const int dtSize = 36; // Form o + two JsonUtf8Constant.DoubleQuote
             if (pos > _bytes.Length - dtSize)
             {
                 Grow(dtSize);
@@ -158,13 +164,14 @@ namespace SpanCsv
             DateTimeFormatter.TryFormat(value, _bytes.Slice(pos), out var bytesWritten);
             pos += bytesWritten;
             _bytes[_pos++] = (byte)'"';
+            WriteUtf8EndingErrata();
         }
 
         public void WriteUtf8(ReadOnlySpan<char> value)
         {
             ref var pos = ref _pos;
             var valueLength = value.Length;
-            var sLength = valueLength + 2; // 2 double quotes
+            var sLength = valueLength + 2; // 2 double quotes + errata
 
             if (pos > _bytes.Length - sLength)
             {
@@ -181,7 +188,7 @@ namespace SpanCsv
                 {
                     _bytes[_pos++] = (byte)'"';
                     _bytes[_pos++] = (byte)'"';
-                    var remaining = 1 + valueLength - i; // we need an extra quote for the double quote.
+                    var remaining = 2 + valueLength - i; // we need an extra quote for the double quote.
                     if (pos > _bytes.Length - remaining)
                     {
                         Grow(remaining);
@@ -191,7 +198,7 @@ namespace SpanCsv
                 {
                     ReadOnlySpan<char> temp = MemoryMarshal.CreateReadOnlySpan(ref c, 1);
 
-                    var remaining = 4 + valueLength - i; // make sure that all characters, an extra 5 for a full escape and 4 for the utf8 bytes, still fit
+                    var remaining = 5 + valueLength - i; // make sure that all characters, an extra 5 for a full escape and 4 for the utf8 bytes, still fit
                     if (pos > _bytes.Length - remaining)
                     {
                         Grow(remaining);
@@ -206,6 +213,7 @@ namespace SpanCsv
             }
 
             _bytes[_pos++] = (byte)'"';
+            WriteUtf8EndingErrata();
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -224,28 +232,35 @@ namespace SpanCsv
         }
 
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void WriteUtf8Seperator()
-        {
-            WriteUtf8Verbatim(_utf8Seperator);
-        }
+        //[MethodImpl(MethodImplOptions.AggressiveInlining)]
+        //public void WriteUtf8Seperator()
+        //{
+        //    WriteUtf8Verbatim(_utf8Seperator);
+        //}
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void WriteUtf8NewLine()
-        {
-            WriteUtf8Verbatim((byte)'\n');
-        }
+        //[MethodImpl(MethodImplOptions.AggressiveInlining)]
+        //public void WriteUtf8NewLine()
+        //{
+        //    WriteUtf8Verbatim((byte)'\n');
+        //}
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void WriteUtf8Verbatim(byte c)
-        {
-            ref var pos = ref _pos;
-            if (pos > _bytes.Length - 1)
-            {
-                Grow(1);
-            }
+        //[MethodImpl(MethodImplOptions.AggressiveInlining)]
+        //private void WriteUtf8Verbatim(byte c)
+        //{
+        //    ref var pos = ref _pos;
+        //    if (pos > _bytes.Length - 1)
+        //    {
+        //        Grow(1);
+        //    }
 
-            _bytes[pos++] = c;
+        //    _bytes[pos++] = c;
+        //}
+
+        
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private void WriteUtf8EndingErrata()
+        {
+            _bytes[_pos++] = _elements-- > 0 ? _utf8Seperator : (byte)'\n';
         }
 
         public void WriteUtf8(bool value)
@@ -253,7 +268,7 @@ namespace SpanCsv
             ref var pos = ref _pos;
             if (value)
             {
-                const int trueLength = 4;
+                const int trueLength = 5; // 4 for true + 1 for seperator.
                 if (pos > _bytes.Length - trueLength)
                 {
                     Grow(trueLength);
@@ -266,7 +281,7 @@ namespace SpanCsv
             }
             else
             {
-                const int falseLength = 5;
+                const int falseLength = 6;
                 if (pos > _bytes.Length - falseLength)
                 {
                     Grow(falseLength);
@@ -278,6 +293,8 @@ namespace SpanCsv
                 _bytes[pos++] = (byte)'s';
                 _bytes[pos++] = (byte)'e';
             }
+
+            WriteUtf8EndingErrata();
         }
     }
 }

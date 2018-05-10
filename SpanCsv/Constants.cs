@@ -4,8 +4,8 @@ namespace SpanCsv
 {
     static class Constants
     {
-        public const int FloatBufferSize = 16;
-        public const int DoubleBufferSize = 24;
-        public const int DecimalBufferSize = 32;
+        public const int FloatBufferSize = 17;
+        public const int DoubleBufferSize = 25;
+        public const int DecimalBufferSize = 33;
     }
 }

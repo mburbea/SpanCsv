@@ -15,8 +15,6 @@ namespace SpanCsv
 {
     public class CsvSerializer : IEnumerable
     {
-        private readonly struct Comma { }
-        private readonly struct NewLine { }
         private readonly struct Dispose { }
         private readonly struct Flush { }
         
@@ -26,8 +24,6 @@ namespace SpanCsv
                 .Where(x => x.Name == nameof(CsvWriter<byte>.WriteUtf8) && x.GetParameters().Length == 1 && x.GetGenericArguments().Length == 0)
                 .ToDictionary(x => x.GetParameters()[0].ParameterType, x => x)
                 .AddRange(new[]{
-                    (typeof(Comma), typeof(CsvWriter<byte>).GetMethod(nameof(CsvWriter<byte>.WriteUtf8Seperator))),
-                    (typeof(NewLine), typeof(CsvWriter<byte>).GetMethod(nameof(CsvWriter<byte>.WriteUtf8NewLine))),
                     (typeof(Dispose), typeof(CsvWriter<byte>).GetMethod(nameof(CsvWriter<byte>.Dispose))),
                     (typeof(Flush), typeof(CsvWriter<byte>).GetMethod(nameof(CsvWriter<byte>.FlushToStream)))
                 });
@@ -39,8 +35,6 @@ namespace SpanCsv
                 .Where(x => x.Name == nameof(CsvWriter<char>.WriteUtf16) && x.GetParameters().Length == 1)
                 .ToDictionary(x => x.GetParameters()[0].ParameterType, x => x)
                 .AddRange(new[]{
-                    (typeof(Comma), typeof(CsvWriter<char>).GetMethod(nameof(CsvWriter<char>.WriteUtf16Seperator))),
-                    (typeof(NewLine), typeof(CsvWriter<char>).GetMethod(nameof(CsvWriter<char>.WriteUtf16NewLine))),
                     (typeof(Dispose), typeof(CsvWriter<char>).GetMethod(nameof(CsvWriter<char>.Dispose))),
                     (typeof(Flush), typeof(CsvWriter<char>).GetMethod(nameof(CsvWriter<char>.FlushToTextWriter)))
                 });
@@ -49,8 +43,6 @@ namespace SpanCsv
         [SuppressMessage("ReSharper", "MemberHidesStaticFromOuterClass")]
         private static class Tokens
         {
-            public static readonly Type Comma = typeof(Comma);
-            public static readonly Type NewLine = typeof(NewLine);
             public static readonly Type Dispose = typeof(Dispose);
             public static readonly Type Flush = typeof(Flush);
         }
@@ -166,7 +158,7 @@ namespace SpanCsv
 
             var lambda = Expression.Lambda<Action<T, IEnumerable, int>>(
                 Expression.Block(new[] { writerVar },
-                Expression.Assign(writerVar, Expression.New(writerVar.Type.GetConstructors()[0], guessParam)),
+                Expression.Assign(writerVar, Expression.New(writerVar.Type.GetConstructors()[0], guessParam, Expression.Constant(properties.Length))),
                 CustomExpression.ForEach(foreachVar, Expression.Convert(dataParam, typeof(IEnumerable<>).MakeGenericType(foreachVar.Type)), BuildLoopBody()),
                 Expression.Call(writerVar, methods[Tokens.Dispose])
                 ), outputParam, dataParam, guessParam);
@@ -182,16 +174,14 @@ namespace SpanCsv
 
                 for (int i = 0; i < propAccessors.Length; i++)
                 {
-                    if (i > 0)
-                    {
-                        loopBody.Add(Expression.Call(writerVar, methods[Tokens.Comma]));
-                    }
+                    //if (i > 0)
+                    //{
+                    //    loopBody.Add(Expression.Call(writerVar, methods[Tokens.Comma]));
+                    //}
                     
                     var propAccessor = memberCache.Visit(propAccessors[i]);
                     var prop = properties[i];
                     var underlyingType = Nullable.GetUnderlyingType(prop.PropertyType) ?? prop.PropertyType;
-
-                    
 
                     if (propAccessor is ConstantExpression constant && constant.Value == null)
                     {
@@ -240,8 +230,8 @@ namespace SpanCsv
                     }
                 }
 
-                loopBody.Add(Expression.Call(writerVar, methods[Tokens.NewLine]));
-                loopBody.Add(Expression.Call(writerVar, methods[Tokens.Flush], outputParam));
+                //loopBody.Add(Expression.Call(writerVar, methods[Tokens.NewLine]));
+                loopBody.Add(Expression.Call(writerVar, methods[Tokens.Flush], outputParam, Expression.Constant(properties.Length)));
                 loopVars.AddRange(memberCache.Cache.Values);
                 loopBody.InsertRange(0, memberCache.Assignments);
                 return Expression.Block(loopVars, loopBody);

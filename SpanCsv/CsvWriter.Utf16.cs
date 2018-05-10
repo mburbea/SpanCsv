@@ -51,6 +51,7 @@ namespace SpanCsv
                 }
 
                 _chars[pos++] = (char)('0' + value);
+                WriteUtf16EndingErrata();
                 return;
             }
 
@@ -69,6 +70,7 @@ namespace SpanCsv
             }
 
             pos += digits;
+            WriteUtf16EndingErrata();
         }
 
         public void WriteUtf16(float value)
@@ -83,6 +85,7 @@ namespace SpanCsv
 
             span.Slice(0, written).CopyTo(_chars.Slice(pos));
             pos += written;
+            WriteUtf16EndingErrata();
         }
 
         public void WriteUtf16(double value)
@@ -97,13 +100,14 @@ namespace SpanCsv
 
             span.Slice(0, written).CopyTo(_chars.Slice(pos));
             pos += written;
+            WriteUtf16EndingErrata();
         }
 
         public void WriteUtf16(decimal value)
         {
             if (value == 0)
             {
-                WriteUtf16Verbatim('0');
+                WriteUtf16(0ul);
                 return;
             }
             Span<char> span = stackalloc char[Constants.DecimalBufferSize];
@@ -116,6 +120,7 @@ namespace SpanCsv
 
             span.Slice(0, written).CopyTo(_chars.Slice(pos));
             pos += written;
+            WriteUtf8EndingErrata();
         }
 
 
@@ -123,7 +128,7 @@ namespace SpanCsv
         {
             ref var pos = ref _pos;
             var valueLength = value.Length;
-            var sLength = valueLength + 2; // 2 double quotes + one special char
+            var sLength = valueLength + 3; // 2 double quotes + ending errata
 
             if (pos > _chars.Length - sLength)
             {
@@ -140,7 +145,7 @@ namespace SpanCsv
                 {
                     _chars[pos++] = '"';
                     _chars[pos++] = '"';
-                    var remaining = 1 + valueLength - i; // we need an extra quote for the double quote.
+                    var remaining = 2 + valueLength - i; // we need an extra quote for the double quote.
                     if (pos > _chars.Length - remaining)
                     {
                         Grow(remaining);
@@ -153,6 +158,7 @@ namespace SpanCsv
             }
 
             _chars[pos++] = '"';
+            WriteUtf16EndingErrata();
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -174,7 +180,7 @@ namespace SpanCsv
         public void WriteUtf16(DateTime value)
         {
             ref var pos = ref _pos;
-            const int dtSize = 35; // Form o + two JsonUtf16Constant.DoubleQuote
+            const int dtSize = 36; // Form o + two JsonUtf16Constant.DoubleQuote
             if (pos > _chars.Length - dtSize)
             {
                 Grow(dtSize);
@@ -184,13 +190,14 @@ namespace SpanCsv
             DateTimeFormatter.TryFormat(value, _chars.Slice(pos), out var written);
             pos += written;
             _chars[pos++] = '"';
+            WriteUtf16EndingErrata();
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void WriteUtf16(DateTimeOffset value)
         {
             ref var pos = ref _pos;
-            const int dtSize = 35; // Form o + two JsonUtf16Constant.DoubleQuote
+            const int dtSize = 36; // Form o + two JsonUtf16Constant.DoubleQuote
             if (pos > _chars.Length - dtSize)
             {
                 Grow(dtSize);
@@ -200,30 +207,37 @@ namespace SpanCsv
             DateTimeFormatter.TryFormat(value, _chars.Slice(pos), out var written);
             pos += written;
             _chars[pos++] = '"';
+            WriteUtf16EndingErrata();
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void WriteUtf16Seperator()
-        {
-            WriteUtf16Verbatim(_utf16Seperator);
-        }
+        //[MethodImpl(MethodImplOptions.AggressiveInlining)]
+        //public void WriteUtf16Seperator()
+        //{
+        //    WriteUtf16Verbatim(_utf16Seperator);
+        //}
+
+        //[MethodImpl(MethodImplOptions.AggressiveInlining)]
+        //public void WriteUtf16NewLine()
+        //{
+        //    WriteUtf16Verbatim('\n');
+        //}
+
+        //[MethodImpl(MethodImplOptions.AggressiveInlining)]
+        //private void WriteUtf16Verbatim(char c)
+        //{
+        //    ref var pos = ref _pos;
+        //    if (pos > _chars.Length - 1)
+        //    {
+        //        Grow(1);
+        //    }
+
+        //    _chars[pos++] = c;
+        //}
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void WriteUtf16NewLine()
+        private void WriteUtf16EndingErrata()
         {
-            WriteUtf16Verbatim('\n');
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void WriteUtf16Verbatim(char c)
-        {
-            ref var pos = ref _pos;
-            if (pos > _chars.Length - 1)
-            {
-                Grow(1);
-            }
-
-            _chars[pos++] = c;
+            _chars[_pos++] = _elements-- > 0 ? _utf16Seperator : '\n';
         }
 
         public void WriteUtf16(bool value)
@@ -231,7 +245,7 @@ namespace SpanCsv
             ref var pos = ref _pos;
             if (value)
             {
-                const int trueLength = 4;
+                const int trueLength = 5;
                 if (pos > _chars.Length - trueLength)
                 {
                     Grow(trueLength);
@@ -244,7 +258,7 @@ namespace SpanCsv
             }
             else
             {
-                const int falseLength = 5;
+                const int falseLength = 6;
                 if (pos > _chars.Length - falseLength)
                 {
                     Grow(falseLength);
@@ -256,6 +270,7 @@ namespace SpanCsv
                 _chars[pos++] = 's';
                 _chars[pos++] = 'e';
             }
+            WriteUtf16EndingErrata();
         }
     }
 }

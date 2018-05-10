@@ -15,6 +15,7 @@ namespace SpanCsv
         private Span<char> _chars;
         private readonly char _utf16Seperator;
         private readonly byte _utf8Seperator;
+        private int _elements;
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Dispose()
@@ -27,13 +28,14 @@ namespace SpanCsv
             }
         }
 
-        public CsvWriter(int initialSize) : this(initialSize, ',')
+        public CsvWriter(int initialSize, int elements) : this(initialSize, ',', elements)
         {
         }
 
-        public CsvWriter(int initialSize, char seperator)
+        public CsvWriter(int initialSize, char seperator, int elements)
         {
             _utf16Seperator = seperator;
+            _elements = elements;
             _utf8Seperator = (byte) seperator;
             Data = ArrayPool<T>.Shared.Rent(initialSize);
             if (typeof(T) == typeof(char))
@@ -90,17 +92,18 @@ namespace SpanCsv
             return s;
         }
 
-        public void FlushToStream(Stream stream)
+        public void FlushToStream(Stream stream, int elements)
         {
             stream.Write((byte[]) (object) Data, 0, _pos);
             _pos = 0;
+            _elements = elements;
         }
 
-        public void FlushToTextWriter(TextWriter textWriter)
+        public void FlushToTextWriter(TextWriter textWriter, int elements)
         {
-
             textWriter.Write((char[]) (object) Data, 0, _pos);
             _pos = 0;
+            _elements = elements;
         }
     }
 }

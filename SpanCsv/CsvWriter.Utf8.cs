@@ -27,18 +27,8 @@ namespace SpanCsv
         public void WriteUtf8(long value)
         {
             ref var pos = ref _pos;
-
-            if (value == long.MinValue)
-            {
-                if (pos > _bytes.Length - 21)
-                {
-                    Grow(21);
-                }
-
-                Constants.LongMinValueUtf8.AsSpan().CopyTo(_bytes.Slice(pos));
-                pos += Constants.LongMinValueUtf8.Length;
-            }
-            else if (value < 0)
+            
+            if (value < 0)
             {
                 if (pos > _bytes.Length - 1)
                 {
@@ -120,7 +110,7 @@ namespace SpanCsv
         {
             if (value == 0)
             {
-                WriteUtf8RawAscii((byte) '0');
+                WriteUtf8Verbatim((byte) '0');
                 return;
             }
 
@@ -237,17 +227,17 @@ namespace SpanCsv
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void WriteUtf8Seperator()
         {
-            WriteUtf8RawAscii(_utf8Seperator);
+            WriteUtf8Verbatim(_utf8Seperator);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void WriteUtf8NewLine()
         {
-            WriteUtf8RawAscii((byte)'\n');
+            WriteUtf8Verbatim((byte)'\n');
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void WriteUtf8RawAscii(byte c)
+        private void WriteUtf8Verbatim(byte c)
         {
             ref var pos = ref _pos;
             if (pos > _bytes.Length - 1)

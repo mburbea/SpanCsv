@@ -17,7 +17,7 @@ namespace SpanCsv
                 var accessorStr = innerAccess.ToString();
                 if (!Cache.TryGetValue(accessorStr, out var accessorVar))
                 {
-                    accessorVar = Expression.Parameter(innerAccess.Type);
+                    accessorVar = Expression.Parameter(innerAccess.Type, innerAccess.Member.Name);
                     
                     Assignments.Add(Expression.Assign(accessorVar, VisitMember(innerAccess)));
                     Cache.Add(accessorStr, accessorVar);

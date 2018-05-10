@@ -25,17 +25,7 @@ namespace SpanCsv
         public void WriteUtf16(long value)
         {
             ref var pos = ref _pos;
-            if (value == long.MinValue)
-            {
-                if (pos > _chars.Length - 21)
-                {
-                    Grow(21);
-                }
-
-                Constants.LongMinValueUtf16.AsSpan().CopyTo(_chars.Slice(pos));
-                pos += Constants.LongMinValueUtf16.Length;
-            }
-            else if (value < 0)
+            if (value < 0)
             {
                 if (pos > _chars.Length - 1)
                 {
@@ -113,7 +103,7 @@ namespace SpanCsv
         {
             if (value == 0)
             {
-                WriteUtf16RawAscii('0');
+                WriteUtf16Verbatim('0');
                 return;
             }
             Span<char> span = stackalloc char[Constants.DecimalBufferSize];
@@ -215,17 +205,17 @@ namespace SpanCsv
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void WriteUtf16Seperator()
         {
-            WriteUtf16RawAscii(_utf16Seperator);
+            WriteUtf16Verbatim(_utf16Seperator);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void WriteUtf16NewLine()
         {
-            WriteUtf16RawAscii('\n');
+            WriteUtf16Verbatim('\n');
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void WriteUtf16RawAscii(char c)
+        private void WriteUtf16Verbatim(char c)
         {
             ref var pos = ref _pos;
             if (pos > _chars.Length - 1)

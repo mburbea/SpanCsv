@@ -27,14 +27,12 @@ namespace SpanCsv
         public void WriteUtf8(long value)
         {
             ref var pos = ref _pos;
-            
+            if (pos > _bytes.Length - 2)
+            {
+                Grow(2);
+            }
             if (value < 0)
             {
-                if (pos > _bytes.Length - 1)
-                {
-                    Grow(1);
-                }
-
                 _bytes[pos++] = (byte)'-';
                 value = unchecked(-value);
             }
@@ -48,9 +46,9 @@ namespace SpanCsv
             ref var pos = ref _pos;
             if (value < 10)
             {
-                if (pos > _bytes.Length - 1)
+                if (pos > _bytes.Length - 2)
                 {
-                    Grow(1);
+                    Grow(2);
                 }
 
                 _bytes[pos++] = (byte)('0' + value);

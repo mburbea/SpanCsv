@@ -25,13 +25,12 @@ namespace SpanCsv
         public void WriteUtf16(long value)
         {
             ref var pos = ref _pos;
+            if (pos > _chars.Length - 2)
+            {
+                Grow(2);
+            }
             if (value < 0)
             {
-                if (pos > _chars.Length - 1)
-                {
-                    Grow(1);
-                }
-
                 _chars[pos++] = '-';
                 value = unchecked(-value);
             }
@@ -45,9 +44,9 @@ namespace SpanCsv
             ref var pos = ref _pos;
             if (value < 10)
             {
-                if (pos > _chars.Length - 1)
+                if (pos > _chars.Length - 2)
                 {
-                    Grow(1);
+                    Grow(2);
                 }
 
                 _chars[pos++] = (char)('0' + value);

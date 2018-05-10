@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Mono.Linq.Expressions;
+using System;
 using System.Collections;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -166,7 +167,7 @@ namespace SpanCsv
             var lambda = Expression.Lambda<Action<T, IEnumerable, int>>(
                 Expression.Block(new[] { writerVar },
                 Expression.Assign(writerVar, Expression.New(writerVar.Type.GetConstructors()[0], guessParam)),
-                ForEach(Expression.Convert(dataParam, typeof(IEnumerable<>).MakeGenericType(foreachVar.Type)), foreachVar, BuildLoopBody()),
+                CustomExpression.ForEach(foreachVar, Expression.Convert(dataParam, typeof(IEnumerable<>).MakeGenericType(foreachVar.Type)), BuildLoopBody()),
                 Expression.Call(writerVar, methods[Tokens.Dispose])
                 ), outputParam, dataParam, guessParam);
 
@@ -176,16 +177,21 @@ namespace SpanCsv
             {
                 var loopVars = new List<ParameterExpression>();
                 var loopBody = new List<Expression>();
+                var memberCache = new MemberAccessCacher();
+                
+
                 for (int i = 0; i < propAccessors.Length; i++)
                 {
                     if (i > 0)
                     {
                         loopBody.Add(Expression.Call(writerVar, methods[Tokens.Comma]));
                     }
-
-                    var propAccessor = propAccessors[i];
+                    
+                    var propAccessor = memberCache.Visit(propAccessors[i]);
                     var prop = properties[i];
                     var underlyingType = Nullable.GetUnderlyingType(prop.PropertyType) ?? prop.PropertyType;
+
+                    
 
                     if (propAccessor is ConstantExpression constant && constant.Value == null)
                     {
@@ -236,6 +242,8 @@ namespace SpanCsv
 
                 loopBody.Add(Expression.Call(writerVar, methods[Tokens.NewLine]));
                 loopBody.Add(Expression.Call(writerVar, methods[Tokens.Flush], outputParam));
+                loopVars.AddRange(memberCache.Cache.Values);
+                loopBody.InsertRange(0, memberCache.Assignments);
                 return Expression.Block(loopVars, loopBody);
             }
         }
